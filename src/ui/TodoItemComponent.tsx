@@ -11,6 +11,7 @@ import { StandardDependencies } from "./StandardDependencies";
 import { PwEvent } from "src/events/PwEvent";
 import { Sound } from "./SoundPlayer";
 import { Random } from "src/Random";
+import { DateTime } from "luxon";
 
 function priorityToIcon(
   attributes: IDictionary<string | boolean> | undefined
@@ -233,11 +234,21 @@ export function TodoItemComponent({todo, deps, playSound, dontCrossCompleted, di
 
   const {todoText, tags} = renderTags(todo.text);
 
+  // Overdue indicator (due date before today, and not completed/canceled)
+  const dueAttr = (todo.attributes && todo.attributes[settings.dueDateAttribute]) as string | undefined;
+  const isOverdue = (() => {
+    if (!dueAttr) return false;
+    const d = DateTime.fromISO(`${dueAttr}`);
+    if (!d.isValid) return false;
+    const todayStart = DateTime.now().startOf("day");
+    return d < todayStart && todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled;
+  })();
+
   return <>
     <div className="pw-todo-container" draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer}>
       <TodoStatusComponent todo={todo} deps={ { logger: deps.logger, app: app }} settings={settings} playSound={playSound} />
       <div className={`pw-todo-text ${completionClassName}`}>
-        {`${priorityIcon} `}{...renderUrl(todoText)}{...tags}{`${isSelectedText}`}
+        {`${priorityIcon} `}{...renderUrl(todoText)}{...tags}{`${isSelectedText}`} {isOverdue ? <span className="pw-overdue">⏰ Overdue</span> : null}
         { showStartTime && deps.settings.trackStartTime && deps.settings.startedAttribute in todo.attributes ? <span className="pw-todo-duration">&nbsp;{formatDuration(todo.attributes[deps.settings.startedAttribute] as string)}</span> : null }
       </div>
       <TodoSubtasksContainer subtasks={todo.subtasks} deps={deps} key={"Subtasks-" + todo.text} dontCrossCompleted={true} displayPreferences={displayPreferences}></TodoSubtasksContainer>

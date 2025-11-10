@@ -202,6 +202,78 @@ export class ProletarianWizardSettingsTab extends PluginSettingTab {
 					})
 			);
 
+		new Setting(containerEl).setName("New Task Capture").setHeading();
+
+		new Setting(containerEl)
+			.setName("Inbox folder")
+			.setDesc("Folder where newly created tasks (from the board) are stored")
+			.addText((text) =>
+				text
+					.setPlaceholder("To-Dos")
+					.setValue(this.plugin.settings.newTasksFolder || "To-Dos")
+					.onChange(async (value) => {
+						this.plugin.settings.newTasksFolder = value || "To-Dos";
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Inbox file name")
+			.setDesc("File name for new tasks in the Inbox folder")
+			.addText((text) =>
+				text
+					.setPlaceholder("Inbox.md")
+					.setValue(this.plugin.settings.newTasksFileName || "Inbox.md")
+					.onChange(async (value) => {
+						this.plugin.settings.newTasksFileName = value || "Inbox.md";
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl).setName("Weekly Goals").setHeading();
+
+		new Setting(containerEl)
+			.setName("Goals folder")
+			.setDesc("Folder where weekly goals notes are stored")
+			.addText((text) =>
+				text
+					.setPlaceholder("Goals")
+					.setValue(this.plugin.settings.goalsFolder || "Goals")
+					.onChange(async (value) => {
+						this.plugin.settings.goalsFolder = value || "Goals";
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Max weekly goals")
+			.setDesc("Maximum number of goals to track per week (1–3)")
+			.addText((text) =>
+				text
+					.setPlaceholder("3")
+					.setValue((this.plugin.settings.maxWeeklyGoals ?? 3).toString())
+					.onChange(async (value) => {
+						const n = parseInt(value, 10);
+						this.plugin.settings.maxWeeklyGoals =
+							Number.isFinite(n) ? Math.max(1, Math.min(3, n)) : 3;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl).setName("Planning Board Display").setHeading();
+
+		new Setting(containerEl)
+			.setName("Show Past column")
+			.setDesc("Display the Past column; when off, overdue items stay in Today with an indicator")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showPastColumn === true)
+					.onChange(async (value) => {
+						this.plugin.settings.showPastColumn = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
 		new Setting(containerEl)
 			.setName("Due date attribute")
 			.setDesc("Attribute to set a todo due date")

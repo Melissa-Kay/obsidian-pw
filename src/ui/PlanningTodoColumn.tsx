@@ -20,6 +20,7 @@ export interface PlanningTodoColumnProps {
   title: string,
   todos: TodoItem<TFile>[],
   onTodoDropped: ((todoId: string) => void) | null,
+  onAddTodo?: (text: string) => void,
   planningSettings: PlanningSettings,
   hideIfEmpty: boolean,
   deps: PlanningTodoColumnDeps,
@@ -31,7 +32,7 @@ export interface PlanningTodoColumnProps {
 const CLASSNAME_NORMAL = "";
 const CLASSNAME_HOVER = "pw-planning-column-content--hover";
 
-export function PlanningTodoColumn({icon, title, planningSettings, onTodoDropped, todos, deps, substyle, playSound, hideIfEmpty, onTitleClick}: PlanningTodoColumnProps) {
+export function PlanningTodoColumn({icon, title, planningSettings, onTodoDropped, todos, deps, substyle, playSound, hideIfEmpty, onTitleClick, onAddTodo}: PlanningTodoColumnProps) {
   const { settings } = deps;
   
   // Filter todos into three categories
@@ -47,6 +48,8 @@ export function PlanningTodoColumn({icon, title, planningSettings, onTodoDropped
   const hasDelegatedTodos = delegatedTodos.length > 0;
 
   const [hoverClassName, setHoverClassName] = React.useState(CLASSNAME_NORMAL);
+  const [isAdding, setIsAdding] = React.useState(false);
+  const [newTodoText, setNewTodoText] = React.useState("");
 
   function onDragOver(ev: any) {
     ev.preventDefault()
@@ -82,7 +85,50 @@ export function PlanningTodoColumn({icon, title, planningSettings, onTodoDropped
     >
       <span className="pw-planning-column-title-icon">{icon}</span>
       <span>{title}</span>
+      {onAddTodo && (
+        <button
+          className="pw-add-btn"
+          onClick={(ev) => { ev.stopPropagation(); setIsAdding(true); }}
+          title="Add a new todo"
+          aria-label="Add a new todo"
+        >
+          ＋
+        </button>
+      )}
     </div>
+    {onAddTodo && isAdding && (
+      <div className="pw-add-inline">
+        <input
+          type="text"
+          className="pw-add-input"
+          placeholder="New todo..."
+          value={newTodoText}
+          onChange={(e) => setNewTodoText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && newTodoText.trim().length > 0) {
+              onAddTodo(newTodoText.trim());
+              setNewTodoText("");
+              setIsAdding(false);
+            } else if (e.key === "Escape") {
+              setIsAdding(false);
+            }
+          }}
+        />
+        <button
+          className="pw-add-submit"
+          onClick={() => {
+            if (newTodoText.trim().length > 0) {
+              onAddTodo(newTodoText.trim());
+              setNewTodoText("");
+              setIsAdding(false);
+            }
+          }}
+        >
+          Add
+        </button>
+        <button className="pw-add-cancel" onClick={() => setIsAdding(false)}>Cancel</button>
+      </div>
+    )}
     <div 
       className={`pw-planning-column-content 
         ${substyle ? `pw-planning-column-content--${substyle}` : ""}

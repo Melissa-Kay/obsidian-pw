@@ -18,6 +18,9 @@ import { DateTimeProgressComponent } from "./DateTimeProgressComponent";
 import { TodayHoursComponent } from "./TodayHoursComponent";
 import { DailyNoteService } from "../domain/DailyNoteService";
 import { DateSelectionModal } from "../Views/DateSelectionModal";
+import { WeeklyGoalsService } from "../domain/WeeklyGoalsService";
+import { WeeklyGoalsComponent } from "./WeeklyGoalsComponent";
+import { TaskCreationService } from "../domain/TaskCreationService";
 
 function findTodoDate<T>(todo: TodoItem<T>, attribute: string): DateTime | null {
   if (!todo.attributes) {
@@ -50,6 +53,8 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
   const { searchParameters, hideEmpty, wipLimit } = planningSettings;
 	const fileOperations = new FileOperations(settings);
   const dailyNoteService = React.useMemo(() => new DailyNoteService(app), [app]);
+  const weeklyGoalsService = React.useMemo(() => new WeeklyGoalsService(app, settings), [app, settings]);
+  const taskCreationService = React.useMemo(() => new TaskCreationService(app, settings), [app, settings]);
   
   // Default working hours
   const defaultStartHour = settings.defaultStartHour || "08:00";
@@ -181,6 +186,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
     todos: TodoItem<TFile>[],
     hideIfEmpty = hideEmpty,
     onTodoDropped: ((todoId: string) => void) | null = null,
+    onAddTodo?: (text: string) => void,
     substyle?: string,
     onTitleClick?: () => void) {
     return <PlanningTodoColumn 
@@ -190,6 +196,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       title={title}
       key={title}
       onTodoDropped={onTodoDropped}
+      onAddTodo={onAddTodo}
       todos={todos}
       playSound={playSound}      
       deps={{
@@ -227,11 +234,23 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       return ""
     }
     const today = DateTime.now().startOf("day")
-    const tomorrow = today.plus({ day: 1 });
-    const todos = getTodosByDateAndStatus(today, tomorrow, [TodoStatus.AttentionRequired, TodoStatus.Delegated, TodoStatus.InProgress, TodoStatus.Todo]);
+    const todos = getTodosDueByEndOfTodayWithStatus([TodoStatus.AttentionRequired, TodoStatus.Delegated, TodoStatus.InProgress, TodoStatus.Todo]);
     if (todos.length > wipLimit.dailyLimit) {
       return "pw-planning-column-content--wip-exceeded"
     }
+  }
+
+  function getTodosDueByEndOfTodayWithStatus(status: TodoStatus[]) {
+    const today = DateTime.now().startOf("day");
+    const tomorrow = today.plus({ day: 1 });
+    return filteredTodos.filter(todo => {
+      if (!todo.attributes) return false;
+      if (!status.contains(todo.status)) return false;
+      const isDone = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+      if (isDone) return false;
+      const dueDate = findTodoDate(todo, settings.dueDateAttribute);
+      return !!dueDate && dueDate < tomorrow;
+    });
   }
 
   function* getTodayColumns() {
@@ -241,18 +260,20 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
     yield todoColumn(
       "◻️",
       "Todo",
-      getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]),
+      getTodosDueByEndOfTodayWithStatus([TodoStatus.Todo]),
       false,
       moveToDateAndStatus(today, TodoStatus.Todo),
+      (text: string) => taskCreationService.appendTodo(text, today.toISODate()),
       "today",
       handleSingleDateClick(today));
       
     yield todoColumn(
       "⏩",
       "In progress",
-      getTodosByDateAndStatus(today, tomorrow, [TodoStatus.AttentionRequired, TodoStatus.Delegated, TodoStatus.InProgress]),
+      getTodosDueByEndOfTodayWithStatus([TodoStatus.AttentionRequired, TodoStatus.Delegated, TodoStatus.InProgress]),
       false,
       moveToDateAndStatus(today, TodoStatus.InProgress),
+      (text: string) => taskCreationService.appendTodo(text, today.toISODate()),
       "today",
       handleSingleDateClick(today));
 
@@ -262,6 +283,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Canceled, TodoStatus.Complete]),
       false,
       moveToDateAndStatus(today, TodoStatus.Complete),
+      undefined,
       "today",
       handleSingleDateClick(today));
   }
@@ -281,15 +303,18 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       "Backlog",
       getTodosWithNoDate(),
       false,
-      removeDate());
+      removeDate(),
+      (text: string) => taskCreationService.appendTodo(text, null));
 
     const today = DateTime.now().startOf("day")
-		yield todoColumn(
-      "🕸️",
-      "Past",
-      getTodosByDate(null, today).filter(
-        todo => todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete),
-      true);
+		if (settings.showPastColumn) {
+      yield todoColumn(
+        "🕸️",
+        "Past",
+        getTodosByDate(null, today).filter(
+          todo => todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete),
+        true);
+    }
       
     let bracketStart = today;
     let bracketEnd = today.plus({ day: 1 });
@@ -311,6 +336,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         todos,
         hideEmpty,
         moveToDate(bracketStart),
+        (text: string) => taskCreationService.appendTodo(text, bracketStart.toISODate()),
         style,
         handleSingleDateClick(bracketStart));
     }
@@ -327,6 +353,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         todos,
         hideEmpty,
         moveToDate(bracketStart),
+        (text: string) => taskCreationService.appendTodo(text, bracketStart.toISODate()),
         style,
         handleAggregateDateClick(bracketStart, bracketEnd.minus({ days: 1 }), label));
     }
@@ -343,6 +370,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         todos,
         hideEmpty,
         moveToDate(bracketStart),
+        (text: string) => taskCreationService.appendTodo(text, bracketStart.toISODate()),
         style,
         handleAggregateDateClick(bracketStart, bracketEnd.minus({ days: 1 }), label));
     }
@@ -353,6 +381,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       getTodosByDate(bracketStart, null),
       hideEmpty,
       moveToDate(bracketStart),
+      (text: string) => taskCreationService.appendTodo(text, bracketStart.toISODate()),
       undefined,
       () => {
         // For "Later", show a general date picker
@@ -385,6 +414,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       >
         <span className="pw-planning-today-icon">☀️</span> Today
       </h1>
+      <WeeklyGoalsComponent service={weeklyGoalsService} settings={settings} />
       {Array.from(getTodayColumns())}
     </div>
     <div>

@@ -348,6 +348,10 @@ For large vaults with many notes:
     yarn build
     ```
 
+    ```bash
+    yarn build:deploy %% Puts the plugin files into the plugin within the Notes vault%%
+    ```
+
 5. **Development with hot reload**:
     ```bash
     yarn dev

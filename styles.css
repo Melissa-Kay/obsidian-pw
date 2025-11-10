@@ -441,3 +441,66 @@
   color: var(--text-on-accent);
   border-color: var(--interactive-accent);
 }
+
+/* Weekly Goals */
+.pw-weekly-goals {
+  margin: 10px 0 20px 0;
+  padding: 8px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 6px;
+}
+.pw-weekly-goals-title {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.pw-weekly-goal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+.pw-weekly-goal-input {
+  flex: 1;
+}
+.pw-weekly-goal-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.pw-weekly-goal-add {
+  margin-top: 6px;
+}
+
+/* Add inline in columns */
+.pw-add-btn {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-weight: bold;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pw-add-inline {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+  align-items: center;
+}
+.pw-add-input {
+  flex: 1;
+}
+.pw-add-submit, .pw-add-cancel {
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+
+/* Overdue indicator */
+.pw-overdue {
+  color: var(--text-error);
+  font-weight: 600;
+  margin-left: 6px;
+}

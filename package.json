@@ -9,7 +9,8 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage",
-		"deploy": "cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/proletarian_wizard\" && echo \"Deployed to $OBSIDIAN_PATH/.obsidian/plugins/proletarian_wizard\"",
+		"deploy": "mkdir -p \"/home/melissa/Notes/.obsidian/plugins/proletarian-wizard\" && cp -f manifest.json main.js styles.css \"/home/melissa/Notes/.obsidian/plugins/proletarian-wizard\" && echo \"Deployed to /home/melissa/Notes/.obsidian/plugins/proletarian-wizard\"",
+		"build:deploy": "yarn build && yarn deploy",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [],
